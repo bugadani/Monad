@@ -1,0 +1,24 @@
+{
+    "name": "bugadani/monad",
+    "description": "Monads implemented in PHP",
+    "minimum-stability": "dev",
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": ">=5.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.2.*"
+    },
+    "authors": [
+        {
+            "name": "Dániel Buga",
+            "email": "bugadani@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Monad\\": "src/"
+        }
+    }
+}
