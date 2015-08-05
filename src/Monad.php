@@ -4,8 +4,10 @@ namespace Monad;
 
 abstract class Monad
 {
+
     /**
      * @param $value
+     *
      * @return Monad
      */
     public static function unit($value)
@@ -27,6 +29,9 @@ abstract class Monad
 
     protected function runTransform($transform)
     {
+        if ($this->value instanceof Monad) {
+            return $this->value->bind($transform);
+        }
         $retVal = $transform($this->value);
 
         if (!$retVal instanceof Monad) {
@@ -38,6 +43,7 @@ abstract class Monad
 
     /**
      * @param callable $transform
+     *
      * @return Monad
      */
     public abstract function bind(callable $transform);

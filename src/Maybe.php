@@ -4,6 +4,8 @@ namespace Monad;
 
 abstract class Maybe extends Monad
 {
+    public static $unit = [__CLASS__, 'unit'];
+
     /**
      * @param $value
      * @return Monad

@@ -11,7 +11,7 @@ class ListMonad extends Monad implements \IteratorAggregate
     public function __construct($value)
     {
         if (is_array($value)) {
-            $value = new \ArrayObject($value);
+            $value = new \ArrayIterator($value);
         } else if (!$value instanceof \Traversable) {
             throw new \InvalidArgumentException('$value must be an array or a Traversable object');
         }
