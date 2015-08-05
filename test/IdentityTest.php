@@ -6,9 +6,9 @@ class IdentityTest extends \PHPUnit_Framework_TestCase
 {
     public function testIdentity()
     {
-        $result = Identity::of(1)->bind(
+        $result = Identity::unit(1)->bind(
             function ($value) {
-                return Identity::of(2)->bind(
+                return Identity::unit(2)->bind(
                     function ($value2) use ($value) {
                         return $value + $value2;
                     });
@@ -19,7 +19,7 @@ class IdentityTest extends \PHPUnit_Framework_TestCase
 
     public function testIdentityChained()
     {
-        $result = Identity::of(1)
+        $result = Identity::unit(1)
                           ->bind(function ($value) {
                               return 2 * $value;
                           })

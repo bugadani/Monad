@@ -8,7 +8,7 @@ class ListMonad extends Monad implements \IteratorAggregate
 {
     private $transform;
 
-    protected function __construct($value)
+    public function __construct($value)
     {
         if (is_array($value)) {
             $value = new \ArrayObject($value);
@@ -28,9 +28,10 @@ class ListMonad extends Monad implements \IteratorAggregate
      */
     public function bind(callable $transform)
     {
-        $this->transform = self::compose($transform, $this->transform);
+        $list = new ListMonad($this->value);
+        $list->transform = self::compose($transform, $this->transform);
 
-        return $this;
+        return $list;
     }
 
     public function extract()

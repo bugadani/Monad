@@ -6,7 +6,7 @@ class ListTest extends \PHPUnit_Framework_TestCase
 {
     public function testFiniteList()
     {
-        $result = ListMonad::of([1, 2, 3])
+        $result = ListMonad::unit([1, 2, 3])
                            ->bind(function ($value) {
                                return 2 * $value;
                            })
@@ -19,9 +19,9 @@ class ListTest extends \PHPUnit_Framework_TestCase
 
     public function testSumPairs()
     {
-        $result = ListMonad::of([0, 1, 2])
+        $result = ListMonad::unit([0, 1, 2])
                            ->bind(function ($value) {
-                               return ListMonad::of([0, 1, 2])->bind(
+                               return ListMonad::unit([0, 1, 2])->bind(
                                    function ($value2) use ($value) {
                                        return $value + $value2;
                                    }
@@ -33,9 +33,9 @@ class ListTest extends \PHPUnit_Framework_TestCase
 
     public function testDoubleMultiDimensional()
     {
-        $result = ListMonad::of([[1, 2], [3, 4], [5, 6]])
+        $result = ListMonad::unit([[1, 2], [3, 4], [5, 6]])
                            ->bind(function ($value) {
-                               return ListMonad::of($value)->bind(function ($value) {
+                               return ListMonad::unit($value)->bind(function ($value) {
                                    return 2 * $value;
                                });
                            });
@@ -45,7 +45,7 @@ class ListTest extends \PHPUnit_Framework_TestCase
 
     public function testListOfMaybe()
     {
-        $result = ListMonad::of([Maybe::of(1), Maybe::of(5), Maybe::of(null), Maybe::of(10)])
+        $result = ListMonad::unit([Maybe::unit(1), Maybe::unit(5), Maybe::unit(null), Maybe::unit(10)])
                            ->bind(function ($value) {
                                return $value->bind(function ($value) {
                                    return 2 * $value;
@@ -58,7 +58,7 @@ class ListTest extends \PHPUnit_Framework_TestCase
     public function testBigList()
     {
         $infiniteIterator  = new \InfiniteIterator(new \ArrayIterator([1, 2, 3, 4]));
-        $infiniteListMonad = ListMonad::of($infiniteIterator)
+        $infiniteListMonad = ListMonad::unit($infiniteIterator)
                                       ->bind(function ($value) {
                                           return $value * 2;
                                       });

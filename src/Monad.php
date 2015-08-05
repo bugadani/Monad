@@ -8,14 +8,14 @@ abstract class Monad
      * @param $value
      * @return Monad
      */
-    public static function of($value)
+    public static function unit($value)
     {
         return new static($value);
     }
 
     protected $value;
 
-    protected function __construct($value)
+    public function __construct($value)
     {
         $this->value = $value;
     }
@@ -30,7 +30,7 @@ abstract class Monad
         $retVal = $transform($this->value);
 
         if (!$retVal instanceof Monad) {
-            $retVal = static::of($retVal);
+            $retVal = static::unit($retVal);
         }
 
         return $retVal;

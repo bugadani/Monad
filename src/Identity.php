@@ -11,6 +11,6 @@ class Identity extends Monad
 
     public function __toString()
     {
-        return "Identity({$this->extract()})";
+        return "Identity({$this->value})";
     }
 }

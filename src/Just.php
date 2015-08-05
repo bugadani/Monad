@@ -11,6 +11,6 @@ class Just extends Maybe
 
     public function __toString()
     {
-        return "Just({$this->extract()})";
+        return "Just({$this->value})";
     }
 }
