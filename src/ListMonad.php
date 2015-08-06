@@ -4,7 +4,7 @@ namespace Monad;
 
 use Traversable;
 
-class ListMonad extends Monad implements \IteratorAggregate
+class ListMonad extends Monad implements \Iterator
 {
     private $transform;
 
@@ -39,7 +39,7 @@ class ListMonad extends Monad implements \IteratorAggregate
             }
         };
 
-        $monad           = new ListMonad($this, $this->transform);
+        $monad            = new ListMonad($this, $this->transform);
         $monad->transform = $transform;
 
         return $monad;
@@ -86,8 +86,30 @@ class ListMonad extends Monad implements \IteratorAggregate
         }
     }
 
-    public function getIterator()
+    public function current()
     {
-        return new TransformIterator($this->value, $this->transform);
+        $transform = $this->transform;
+
+        return $transform($this->value->current());
+    }
+
+    public function next()
+    {
+        $this->value->next();
+    }
+
+    public function key()
+    {
+        return $this->value->key();
+    }
+
+    public function valid()
+    {
+        return $this->value->valid();
+    }
+
+    public function rewind()
+    {
+        $this->value->rewind();
     }
 }
