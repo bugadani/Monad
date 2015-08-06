@@ -29,9 +29,6 @@ abstract class Monad
 
     protected function runTransform($transform)
     {
-        if ($this->value instanceof Monad) {
-            return $this->value->bind($transform);
-        }
         $retVal = $transform($this->value);
 
         if (!$retVal instanceof Monad) {

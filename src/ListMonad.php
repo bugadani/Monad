@@ -8,17 +8,20 @@ class ListMonad extends Monad implements \IteratorAggregate
 {
     private $transform;
 
-    public function __construct($value)
+    public function __construct($value, callable $transform = null)
     {
         if (is_array($value)) {
             $value = new \ArrayIterator($value);
         } else if (!$value instanceof \Traversable) {
             throw new \InvalidArgumentException('$value must be an array or a Traversable object');
         }
+        if ($transform === null) {
+            $transform = function ($value) {
+                return $value;
+            };
+        }
+        $this->transform = $transform;
         //Start with the unit transformation
-        $this->transform = function ($value) {
-            return $value;
-        };
         parent::__construct($value);
     }
 
@@ -28,20 +31,30 @@ class ListMonad extends Monad implements \IteratorAggregate
      */
     public function bind(callable $transform)
     {
-        $list = new ListMonad($this->value);
-        $list->transform = self::compose($transform, $this->transform);
+        $transform = function ($value) use ($transform) {
+            if ($value instanceof Monad) {
+                return $value->bind($transform);
+            } else {
+                return $transform($value);
+            }
+        };
 
-        return $list;
+        $monad           = new ListMonad($this, $this->transform);
+        $monad->transform = $transform;
+
+        return $monad;
     }
 
     public function extract()
     {
         $return = [];
         foreach ($this as $value) {
+            $this->concatenate($value, $return);
+        }
+        foreach ($return as &$value) {
             if ($value instanceof Monad) {
                 $value = $value->extract();
             }
-            $return[] = $value;
         }
 
         return $return;
@@ -51,22 +64,30 @@ class ListMonad extends Monad implements \IteratorAggregate
     {
         $values = [];
         foreach ($this as $value) {
-            $values[] = $value;
+            $this->concatenate($value, $values);
         }
         $elements = implode(', ', $values);
 
         return "List({$elements})";
     }
 
+    /**
+     * @param $value
+     * @param $values
+     */
+    private function concatenate($value, &$values)
+    {
+        if (is_array($value)) {
+            $values = array_merge($values, $value);
+        } else if ($value instanceof \Traversable) {
+            $values = array_merge($values, iterator_to_array($value));
+        } else {
+            $values[] = $value;
+        }
+    }
+
     public function getIterator()
     {
         return new TransformIterator($this->value, $this->transform);
-    }
-
-    private static function compose($transform, $oldTransform)
-    {
-        return function ($value) use ($oldTransform, $transform) {
-            return $transform($oldTransform($value));
-        };
     }
 }

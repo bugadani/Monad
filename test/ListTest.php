@@ -34,7 +34,7 @@ class ListTest extends \PHPUnit_Framework_TestCase
                                }
                            );
 
-        $this->assertEquals([[0, 1, 2], [1, 2, 3], [2, 3, 4]], $result->extract());
+        $this->assertEquals([0, 1, 2, 1, 2, 3, 2, 3, 4], $result->extract());
     }
 
     public function testDoubleMultiDimensional()
@@ -42,11 +42,13 @@ class ListTest extends \PHPUnit_Framework_TestCase
         $result = ListMonad::unit([[1, 2], [3, 4], [5, 6]])
                            ->bind(
                                function ($value) {
-                                   return ListMonad::unit($value)->bind(
-                                       function ($value) {
-                                           return 2 * $value;
-                                       }
-                                   );
+                                   return [
+                                       ListMonad::unit($value)->bind(
+                                           function ($value) {
+                                               return 2 * $value;
+                                           }
+                                       )
+                                   ];
                                }
                            );
 
@@ -55,24 +57,25 @@ class ListTest extends \PHPUnit_Framework_TestCase
 
     public function testBunnyGeneration()
     {
-        //todo this is a fixed test as currently I don't quite understand list binding
         $generation = function ($value) {
-            return [$value, $value, $value];
+            return ListMonad::unit([$value, $value]);
         };
 
         $result = ListMonad::unit(['bunny'])
                            ->bind($generation);
 
-        $this->assertEquals([['bunny', 'bunny', 'bunny']], $result->extract());
+        $this->assertEquals(['bunny', 'bunny'], $result->extract());
+        $this->assertEquals('List(bunny, bunny)', (string)$result);
 
         $result = ListMonad::unit(['bunny'])
                            ->bind($generation)
                            ->bind($generation);
 
         $this->assertEquals(
-            [[['bunny', 'bunny', 'bunny'], ['bunny', 'bunny', 'bunny'], ['bunny', 'bunny', 'bunny']]],
+            ['bunny', 'bunny', 'bunny', 'bunny'],
             $result->extract()
         );
+        $this->assertEquals('List(bunny, bunny, bunny, bunny)', (string)$result);
     }
 
     public function testListOfMaybe()
@@ -81,20 +84,16 @@ class ListTest extends \PHPUnit_Framework_TestCase
                            ->bind(Maybe::$unit)
                            ->bind(
                                function ($value) {
-                                   return $value->bind(
-                                       function ($value) {
-                                           return 2 * $value;
-                                       }
-                                   );
+                                   return 2 * $value;
                                }
                            );
 
         $this->assertEquals('List(Just(2), Just(10), Nothing, Just(20))', (string)$result);
     }
 
-    public function testBigList()
+    public function testInfiniteList()
     {
-        $infiniteIterator = new \InfiniteIterator(new \ArrayIterator([1, 2, 3, 4]));
+        $infiniteIterator  = new \InfiniteIterator(new \ArrayIterator([1, 2, 3, 4]));
         $infiniteListMonad = ListMonad::unit($infiniteIterator)
                                       ->bind(
                                           function ($value) {
