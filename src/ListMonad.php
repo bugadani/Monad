@@ -65,11 +65,6 @@ class ListMonad extends Monad implements \Iterator
         }
     }
 
-    private function iterable($transformed)
-    {
-        return is_array($transformed) || $transformed instanceof \Traversable;
-    }
-
     /**
      * @param callable $transform
      * @return Monad
