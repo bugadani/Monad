@@ -56,7 +56,7 @@ class ListMonad extends Monad implements \Iterator
      */
     private function append($transformed)
     {
-        if ($this->iterable($transformed)) {
+        if (is_array($transformed)) {
             foreach ($transformed as $value) {
                 $this->transformed->append($value);
             }
