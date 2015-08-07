@@ -6,23 +6,68 @@ use Traversable;
 
 class ListMonad extends Monad implements \Iterator
 {
-    private $transform;
+    public static $unit = [__CLASS__, 'unit'];
+
+    /**
+     * @var \Closure
+     */
+    private $transformation;
+
+    /**
+     * @var \ArrayIterator
+     */
+    private $transformed;
 
     public function __construct($value, callable $transform = null)
     {
-        if (is_array($value)) {
-            $value = new \ArrayIterator($value);
+        if ($value instanceof \IteratorAggregate) {
+            $value = $value->getIterator();
         } else if (!$value instanceof \Traversable) {
-            throw new \InvalidArgumentException('$value must be an array or a Traversable object');
+            if (!is_array($value)) {
+                $value = [$value];
+            }
+            $value = new \ArrayIterator($value);
         }
-        if ($transform === null) {
-            $transform = function ($value) {
-                return $value;
-            };
-        }
-        $this->transform = $transform;
         //Start with the unit transformation
         parent::__construct($value);
+
+        $this->transformation = $transform;
+        if ($transform === null) {
+            $this->transformed = $value;
+        } else {
+            $this->transformed = new \ArrayIterator();
+        }
+    }
+
+    private function transform($current)
+    {
+        $transform = $this->transformation;
+        if ($current instanceof Monad) {
+            $return = $current->bind($transform);
+        } else {
+            $return = $transform($current);
+        }
+
+        return $return;
+    }
+
+    /**
+     * @param $transformed
+     */
+    private function append($transformed)
+    {
+        if ($this->iterable($transformed)) {
+            foreach ($transformed as $value) {
+                $this->transformed->append($value);
+            }
+        } else {
+            $this->transformed->append($transformed);
+        }
+    }
+
+    private function iterable($transformed)
+    {
+        return is_array($transformed) || $transformed instanceof \Traversable;
     }
 
     /**
@@ -31,85 +76,64 @@ class ListMonad extends Monad implements \Iterator
      */
     public function bind(callable $transform)
     {
-        $transform = function ($value) use ($transform) {
-            if ($value instanceof Monad) {
-                return $value->bind($transform);
-            } else {
-                return $transform($value);
-            }
-        };
-
-        $monad            = new ListMonad($this, $this->transform);
-        $monad->transform = $transform;
-
-        return $monad;
+        return new ListMonad($this, $transform);
     }
 
     public function extract()
     {
-        $return = [];
-        foreach ($this as $value) {
-            $this->concatenate($value, $return);
-        }
-        foreach ($return as &$value) {
-            if ($value instanceof Monad) {
-                $value = $value->extract();
-            }
-        }
+        return array_map(
+            function ($value) {
+                if ($value instanceof Monad) {
+                    $value = $value->extract();
+                }
 
-        return $return;
+                return $value;
+            },
+            iterator_to_array($this)
+        );
     }
 
     public function __toString()
     {
-        $values = [];
-        foreach ($this as $value) {
-            $this->concatenate($value, $values);
-        }
+        $values   = iterator_to_array($this);
         $elements = implode(', ', $values);
 
         return "List({$elements})";
     }
 
-    /**
-     * @param $value
-     * @param $values
-     */
-    private function concatenate($value, &$values)
+    public function rewind()
     {
-        if (is_array($value)) {
-            $values = array_merge($values, $value);
-        } else if ($value instanceof \Traversable) {
-            $values = array_merge($values, iterator_to_array($value));
-        } else {
-            $values[] = $value;
-        }
+        $this->transformed->rewind();
     }
 
     public function current()
     {
-        $transform = $this->transform;
-
-        return $transform($this->value->current());
-    }
-
-    public function next()
-    {
-        $this->value->next();
+        return $this->transformed->current();
     }
 
     public function key()
     {
-        return $this->value->key();
+        return $this->transformed->key();
+    }
+
+    public function next()
+    {
+        $this->transformed->next();
+        if (!$this->transformed->valid()) {
+            $this->value->next();
+        }
     }
 
     public function valid()
     {
-        return $this->value->valid();
-    }
+        if (!$this->transformed->valid()) {
+            if ($this->value->valid()) {
+                $this->append(
+                    $this->transform($this->value->current())
+                );
+            }
+        }
 
-    public function rewind()
-    {
-        $this->value->rewind();
+        return $this->transformed->valid();
     }
 }

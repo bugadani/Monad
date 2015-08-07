@@ -12,6 +12,10 @@ abstract class Monad
      */
     public static function unit($value)
     {
+        if ($value instanceof static) {
+            return $value;
+        }
+
         return new static($value);
     }
 

@@ -4,6 +4,7 @@ namespace Monad;
 
 class ListTest extends \PHPUnit_Framework_TestCase
 {
+
     public function testFiniteList()
     {
         $result = ListMonad::unit([1, 2, 3])
@@ -19,6 +20,17 @@ class ListTest extends \PHPUnit_Framework_TestCase
                            );
 
         $this->assertEquals([1, 3, 5], $result->extract());
+    }
+
+    public function testPower()
+    {
+        $square = function ($a) {
+            return [[$a * $a, $a * $a]];
+        };
+        $result = ListMonad::unit([2, 2])
+                           ->bind($square);
+
+        $this->assertEquals([[4, 4], [4, 4]], $result->extract());
     }
 
     public function testSumPairs()
@@ -52,13 +64,16 @@ class ListTest extends \PHPUnit_Framework_TestCase
                                }
                            );
 
+        foreach ($result as $r) {
+            $this->assertCount(2, $r);
+        }
         $this->assertEquals([[2, 4], [6, 8], [10, 12]], $result->extract());
     }
 
     public function testBunnyGeneration()
     {
         $generation = function ($value) {
-            return ListMonad::unit([$value, $value]);
+            return [$value, $value];
         };
 
         $result = ListMonad::unit(['bunny'])
