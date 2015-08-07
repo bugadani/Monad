@@ -59,9 +59,7 @@ class ListTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals([[2, 4], [6, 8], [10, 12]], $result->extract());
 
         $result = ListMonad::unit([[1, 2], [3, 4], [5, 6]])
-                           ->bind(function ($value) {
-                               return ListMonad::unit($value);
-                           })
+                           ->bind(ListMonad::$unit)
                            ->bind(function ($value) {
                                return 2 * $value;
                            });
