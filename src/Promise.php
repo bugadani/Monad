@@ -2,8 +2,7 @@
 
 namespace Monad;
 
-use Monad\Promise\Fulfilled;
-use Monad\Promise\Rejected;
+use Monad\Promise\Pending;
 use Monad\Promise\ResolutionResult;
 use Monad\Promise\TaskQueue;
 
@@ -47,21 +46,6 @@ class Promise extends Monad
     }
 
     /**
-     * @var callable
-     */
-    private $onFulfilled = null;
-
-    /**
-     * @var callable
-     */
-    private $onRejected = null;
-
-    /**
-     * @var Promise[]
-     */
-    private $children = [];
-
-    /**
      * @var ResolutionResult
      */
     private $resolved;
@@ -84,6 +68,12 @@ class Promise extends Monad
             $this->parent = $parent->parent === null ? $parent : $parent->parent;
             $this->tasks  = $parent->tasks;
         }
+        $this->resolved = new Pending($this, $this->tasks);
+    }
+
+    public function getTaskQueue()
+    {
+        return $this->tasks;
     }
 
     /**
@@ -94,71 +84,17 @@ class Promise extends Monad
      */
     public function then(callable $onFulfilled = null, callable $onRejected = null)
     {
-        $child              = new Promise($this);
-        $child->onFulfilled = $onFulfilled;
-        $child->onRejected  = $onRejected;
-
-        if ($this->resolved === null) {
-            $this->children[] = $child;
-        } else {
-            $callback = $this->resolved->getCallback($onFulfilled, $onRejected);
-            if ($callback === null) {
-                $child->resolved = $this->resolved;
-            } else {
-                $this->postResolveTask($child, $this->resolved->extract());
-                $this->tasks->runTasks();
-            }
-        }
-
-        return $child;
+        return $this->resolved->then($onFulfilled, $onRejected);
     }
 
     public function fulfill($value)
     {
-        if ($this->resolved !== null) {
-            throw new \BadMethodCallException('The Promise has already been resolved');
-        }
-
-        $this->resolved = new Fulfilled($value);
-        foreach ($this->children as $child) {
-            if ($child->onFulfilled !== null) {
-                $this->postResolveTask($child, $value);
-            } else {
-                $child->fulfill($value);
-            }
-        }
-        $this->tasks->runTasks();
+        $this->resolved = $this->resolved->fulfill($value);
     }
 
     public function reject($reason)
     {
-        if ($this->resolved !== null) {
-            throw new \BadMethodCallException('The Promise has already been resolved');
-        }
-
-        $this->resolved = new Rejected($reason);
-        foreach ($this->children as $child) {
-            if ($child->onRejected !== null) {
-                $this->postResolveTask($child, $reason);
-            } else {
-                $child->reject($reason);
-            }
-        }
-        $this->tasks->runTasks();
-    }
-
-    private function postResolveTask(Promise &$child, $value)
-    {
-        $function = $this->resolved->getCallback($child->onFulfilled, $child->onRejected);
-        $this->tasks->enqueue(
-            function () use (&$child, $function, $value) {
-                try {
-                    $child = Promise::resolve($function($value), $child);
-                } catch (\Exception $e) {
-                    $child->reject($e);
-                }
-            }
-        );
+        $this->resolved = $this->resolved->reject($reason);
     }
 
     public function bind(callable $onFulfilled, callable $onRejected = null)
@@ -168,28 +104,16 @@ class Promise extends Monad
 
     public function extract()
     {
-        if ($this->resolved === null) {
-            return null;
-        }
-
         return $this->resolved->extract();
     }
 
     public function getState()
     {
-        if ($this->resolved === null) {
-            return 'pending';
-        }
-
         return $this->resolved->getState();
     }
 
     public function __toString()
     {
-        if ($this->resolved === null) {
-            return 'Promise';
-        }
-
         return $this->resolved->__toString();
     }
 }
