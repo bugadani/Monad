@@ -13,7 +13,7 @@ class PromiseTest extends \PHPUnit_Framework_TestCase
         $parent = new Promise();
         $p      = $parent;
 
-        $count  = 10;
+        $count = 10;
         $called = 0;
 
         for ($i = 0; $i < $count; $i++) {
@@ -110,6 +110,23 @@ class PromiseTest extends \PHPUnit_Framework_TestCase
             }
         );
         $this->assertEquals(1, $called);
+    }
+
+    public function testContinuation()
+    {
+        $result = Promise::resolve(2)->then(
+            function ($value) {
+                return 3 + $value;
+            }
+        )->then(function($value){
+            throw new \Exception($value);
+        })->then(null, function(\Exception $e) {
+            return $e->getMessage();
+        });
+
+        $this->assertEquals(5, $result->extract());
+        $this->assertEquals("fulfilled", $result->getState());
+        $this->assertEquals("Promise(5)", (string)$result);
     }
 
     public function testPromiseAsMonad()
