@@ -4,7 +4,7 @@ namespace Monad\Promise;
 
 use Monad\Promise;
 
-abstract class ResolutionResult
+abstract class PromiseState
 {
     protected $tasks;
     protected $value;
@@ -12,9 +12,9 @@ abstract class ResolutionResult
 
     public function __construct(Promise $promise, TaskQueue $tasks, $value)
     {
-        $this->tasks = $tasks;
-        $this->promise= $promise;
-        $this->value = $value;
+        $this->tasks   = $tasks;
+        $this->promise = $promise;
+        $this->value   = $value;
     }
 
     abstract public function getCallback(callable $onFulfilled = null, callable $onRejected = null);
@@ -38,20 +38,15 @@ abstract class ResolutionResult
     {
         $callback = $this->getCallback($onFulfilled, $onRejected);
         if ($callback === null) {
-            return $this;
+            $child = $this;
         } else {
             $child = new Promise($this->promise);
 
             $this->postResolveTask($child, $callback, $this->value);
             $this->tasks->runTasks();
-
-            return $child;
         }
-    }
 
-    public function runTasks()
-    {
-        $this->tasks->runTasks();
+        return $child;
     }
 
     public function reject($reason)

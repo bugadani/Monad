@@ -3,7 +3,7 @@
 namespace Monad;
 
 use Monad\Promise\Pending;
-use Monad\Promise\ResolutionResult;
+use Monad\Promise\PromiseState;
 use Monad\Promise\TaskQueue;
 
 /**
@@ -46,14 +46,9 @@ class Promise extends Monad
     }
 
     /**
-     * @var ResolutionResult
+     * @var PromiseState
      */
-    private $resolved;
-
-    /**
-     * @var Promise
-     */
-    private $parent;
+    private $state;
 
     /**
      * @var TaskQueue
@@ -65,15 +60,9 @@ class Promise extends Monad
         if ($parent === null) {
             $this->tasks = new TaskQueue();
         } else {
-            $this->parent = $parent->parent === null ? $parent : $parent->parent;
             $this->tasks  = $parent->tasks;
         }
-        $this->resolved = new Pending($this, $this->tasks);
-    }
-
-    public function getTaskQueue()
-    {
-        return $this->tasks;
+        $this->state = new Pending($this, $this->tasks);
     }
 
     /**
@@ -84,17 +73,17 @@ class Promise extends Monad
      */
     public function then(callable $onFulfilled = null, callable $onRejected = null)
     {
-        return $this->resolved->then($onFulfilled, $onRejected);
+        return $this->state->then($onFulfilled, $onRejected);
     }
 
     public function fulfill($value)
     {
-        $this->resolved = $this->resolved->fulfill($value);
+        $this->state = $this->state->fulfill($value);
     }
 
     public function reject($reason)
     {
-        $this->resolved = $this->resolved->reject($reason);
+        $this->state = $this->state->reject($reason);
     }
 
     public function bind(callable $onFulfilled, callable $onRejected = null)
@@ -104,16 +93,16 @@ class Promise extends Monad
 
     public function extract()
     {
-        return $this->resolved->extract();
+        return $this->state->extract();
     }
 
     public function getState()
     {
-        return $this->resolved->getState();
+        return $this->state->getState();
     }
 
     public function __toString()
     {
-        return $this->resolved->__toString();
+        return $this->state->__toString();
     }
 }

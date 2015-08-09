@@ -4,7 +4,7 @@ namespace Monad\Promise;
 
 use Monad\Promise;
 
-class Pending extends ResolutionResult
+class Pending extends PromiseState
 {
     /**
      * @var Promise[]
@@ -39,7 +39,7 @@ class Pending extends ResolutionResult
                 $child->reject($reason);
             }
         }
-        $this->runTasks();
+        $this->tasks->runTasks();
 
         return $resolved;
     }

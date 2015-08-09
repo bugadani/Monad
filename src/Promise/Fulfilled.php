@@ -4,7 +4,7 @@ namespace Monad\Promise;
 
 use Monad\Promise;
 
-class Fulfilled extends ResolutionResult
+class Fulfilled extends PromiseState
 {
 
     public function getCallback(callable $onFulfilled = null, callable $onRejected = null)
