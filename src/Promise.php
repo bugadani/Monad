@@ -5,6 +5,7 @@ namespace Monad;
 use Monad\Promise\Fulfilled;
 use Monad\Promise\Rejected;
 use Monad\Promise\ResolutionResult;
+use Monad\Promise\TaskQueue;
 
 /**
  * Promise monad that implements the Promise/A+ specification
@@ -71,20 +72,14 @@ class Promise extends Monad
     private $parent;
 
     /**
-     * @var bool
-     */
-    private $tasksRunning = false;
-
-    /**
-     * @var \SplQueue
+     * @var TaskQueue
      */
     private $tasks;
 
     public function __construct(Promise $parent = null)
     {
         if ($parent === null) {
-            $this->tasks = new \SplQueue();
-            $this->tasks->setIteratorMode(\SplQueue::IT_MODE_DELETE);
+            $this->tasks = new TaskQueue();
         } else {
             $this->parent = $parent->parent === null ? $parent : $parent->parent;
             $this->tasks  = $parent->tasks;
@@ -111,7 +106,7 @@ class Promise extends Monad
                 $child->resolved = $this->resolved;
             } else {
                 $this->postResolveTask($child, $this->resolved->extract());
-                $this->runTasks();
+                $this->tasks->runTasks();
             }
         }
 
@@ -132,7 +127,7 @@ class Promise extends Monad
                 $child->fulfill($value);
             }
         }
-        $this->runTasks();
+        $this->tasks->runTasks();
     }
 
     public function reject($reason)
@@ -149,13 +144,13 @@ class Promise extends Monad
                 $child->reject($reason);
             }
         }
-        $this->runTasks();
+        $this->tasks->runTasks();
     }
 
     private function postResolveTask(Promise &$child, $value)
     {
         $function = $this->resolved->getCallback($child->onFulfilled, $child->onRejected);
-        $this->postTask(
+        $this->tasks->enqueue(
             function () use (&$child, $function, $value) {
                 try {
                     $child = Promise::resolve($function($value), $child);
@@ -164,27 +159,6 @@ class Promise extends Monad
                 }
             }
         );
-    }
-
-    private function postTask($task)
-    {
-        $this->tasks->enqueue($task);
-    }
-
-    private function runTasks()
-    {
-        if ($this->parent === null) {
-            if (!$this->tasksRunning) {
-                $this->tasksRunning = true;
-                foreach ($this->tasks as $task) {
-                    /** @var callable $task */
-                    $task();
-                }
-                $this->tasksRunning = false;
-            }
-        } else {
-            $this->parent->runTasks();
-        }
     }
 
     public function bind(callable $onFulfilled, callable $onRejected = null)
