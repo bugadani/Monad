@@ -13,13 +13,19 @@ class PromiseTest extends \PHPUnit_Framework_TestCase
         $parent = new Promise();
         $p      = $parent;
 
-        $count = 10;
+        $count  = 10;
         $called = 0;
+
+        $stackDepthFunction = function_exists('xdebug_get_stack_depth')
+            ? 'xdebug_get_stack_depth'
+            : function () {
+                return count(debug_backtrace());
+            };
 
         for ($i = 0; $i < $count; $i++) {
             $p = $p->then(
-                function ($v) use (&$called) {
-                    $currentDepth = xdebug_get_stack_depth();
+                function ($v) use (&$called, $stackDepthFunction) {
+                    $currentDepth = $stackDepthFunction();
                     $called++;
                     if ($v != -1) {
                         $this->assertEquals($v, $currentDepth);
@@ -118,11 +124,16 @@ class PromiseTest extends \PHPUnit_Framework_TestCase
             function ($value) {
                 return 3 + $value;
             }
-        )->then(function($value){
-            throw new \Exception($value);
-        })->then(null, function(\Exception $e) {
-            return $e->getMessage();
-        });
+        )->then(
+            function ($value) {
+                throw new \Exception($value);
+            }
+        )->then(
+            null,
+            function (\Exception $e) {
+                return $e->getMessage();
+            }
+        );
 
         $this->assertEquals(5, $result->extract());
         $this->assertEquals("fulfilled", $result->getState());
