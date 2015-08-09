@@ -14,34 +14,34 @@ class Promise extends Monad
 
     public static function resolve($value, Promise $promise = null)
     {
-        if ($promise === null) {
-            $promise = new Promise();
-        }
         if ($value === $promise) {
             throw new \InvalidArgumentException('$promise === $value');
-        } elseif ($value instanceof Promise) {
-            $value->then(
-                [$promise, 'fulfill'],
-                [$promise, 'reject']
-            );
-        } elseif (is_object($value) && method_exists($value, 'then')) {
-            try {
-                $value->then(
-                    function ($value) use ($promise) {
-                        Promise::resolve($promise, $value);
-                    },
-                    [$promise, 'reject']
-                );
-            } catch (\Exception $e) {
-                if ($promise->getState() === 'pending') {
-                    $promise->reject($e);
-                }
-            }
-        } else {
-            $promise->fulfill($value);
         }
+        if ($value instanceof Promise) {
+            return $value;
+        } else {
+            if ($promise === null) {
+                $promise = new Promise();
+            }
+            if (is_object($value) && method_exists($value, 'then')) {
+                try {
+                    $value->then(
+                        function ($value) use ($promise) {
+                            Promise::resolve($value, $promise);
+                        },
+                        [$promise, 'reject']
+                    );
+                } catch (\Exception $e) {
+                    if ($promise->getState() === 'pending') {
+                        $promise->reject($e);
+                    }
+                }
+            } else {
+                $promise->fulfill($value);
+            }
 
-        return $promise;
+            return $promise;
+        }
     }
 
     /**
@@ -85,7 +85,7 @@ class Promise extends Monad
             $this->tasks = new \SplQueue();
             $this->tasks->setIteratorMode(\SplQueue::IT_MODE_DELETE);
         } else {
-            $this->parent = $parent;
+            $this->parent = $parent->parent === null ? $parent : $parent->parent;
             $this->tasks  = $parent->tasks;
         }
     }
@@ -126,16 +126,7 @@ class Promise extends Monad
         $this->resolved = new Fulfilled($this, $value);
         foreach ($this->children as $child) {
             if ($child->onFulfilled !== null) {
-                $this->postTask(
-                    function () use ($child, $value) {
-                        try {
-                            $onFulfilled = $child->onFulfilled;
-                            Promise::resolve($onFulfilled($value), $child);
-                        } catch (\Exception $e) {
-                            $child->reject($e);
-                        }
-                    }
-                );
+                $this->postResolveTask($child, $child->onFulfilled, $value);
             } else {
                 $child->fulfill($value);
             }
@@ -148,24 +139,55 @@ class Promise extends Monad
         if ($this->resolved !== null) {
             throw new \BadMethodCallException('The Promise has already been resolved');
         }
+
         $this->resolved = new Rejected($this, $reason);
         foreach ($this->children as $child) {
             if ($child->onRejected !== null) {
-                $this->postTask(
-                    function () use ($child, $reason) {
-                        try {
-                            $onRejected = $child->onRejected;
-                            Promise::resolve($child, $onRejected($reason));
-                        } catch (\Exception $e) {
-                            $child->reject($e);
-                        }
-                    }
-                );
+                $this->postResolveTask($child, $child->onRejected, $reason);
             } else {
                 $child->reject($reason);
             }
         }
         $this->runTasks();
+    }
+
+    private function postResolveTask(Promise $child, callable $function, $value)
+    {
+        $this->postTask(
+            function () use ($child, $function, $value) {
+                try {
+                    Promise::resolve($function($value), $child);
+                } catch (\Exception $e) {
+                    $child->reject($e);
+                }
+            }
+        );
+    }
+
+    private function postTask($task)
+    {
+        $this->tasks->enqueue($task);
+    }
+
+    private function runTasks()
+    {
+        if ($this->parent === null) {
+            if (!$this->tasksRunning) {
+                $this->tasksRunning = true;
+                foreach ($this->tasks as $task) {
+                    /** @var callable $task */
+                    $task();
+                }
+                $this->tasksRunning = false;
+            }
+        } else {
+            $this->parent->runTasks();
+        }
+    }
+
+    public function bind(callable $onFulfilled, callable $onRejected = null)
+    {
+        return $this->then($onFulfilled, $onRejected);
     }
 
     public function getState()
@@ -175,37 +197,6 @@ class Promise extends Monad
         }
 
         return $this->resolved->getState();
-    }
-
-    protected function postTask($task)
-    {
-        $this->tasks->enqueue($task);
-    }
-
-    private function runTasks()
-    {
-        if ($this->parent === null) {
-            if ($this->tasksRunning) {
-                return;
-            }
-            $this->tasksRunning = true;
-            foreach ($this->tasks as $task) {
-                /** @var callable $task */
-                $task();
-            }
-            $this->tasksRunning = false;
-        } else {
-            $parent = $this->parent;
-            while ($parent->parent !== null) {
-                $parent = $parent->parent;
-            }
-            $parent->runTasks();
-        }
-    }
-
-    public function bind(callable $onFulfilled, callable $onRejected = null)
-    {
-        return $this->then($onFulfilled, $onRejected);
     }
 
     public function __toString()
