@@ -28,15 +28,15 @@ class ListMonad extends Monad implements \Iterator
             }
             $value = new \ArrayIterator($value);
         }
-        //Start with the unit transformation
-        parent::__construct($value);
 
-        $this->transformation = $transform;
         if ($transform === null) {
             $this->transformed = $value;
         } else {
-            $this->transformed = new \ArrayIterator();
+            $this->transformation = $transform;
+            $this->transformed    = new \ArrayIterator();
         }
+
+        parent::__construct($value);
     }
 
     private function transform($current)
@@ -67,6 +67,7 @@ class ListMonad extends Monad implements \Iterator
 
     /**
      * @param callable $transform
+     *
      * @return Monad
      */
     public function bind(callable $transform)

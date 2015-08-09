@@ -12,11 +12,11 @@ abstract class Monad
      */
     public static function unit($value)
     {
-        if ($value instanceof static) {
-            return $value;
+        if (!$value instanceof static) {
+            $value = new static($value);
         }
 
-        return new static($value);
+        return $value;
     }
 
     protected $value;
@@ -33,13 +33,7 @@ abstract class Monad
 
     protected function runTransform($transform)
     {
-        $retVal = $transform($this->value);
-
-        if (!$retVal instanceof Monad) {
-            $retVal = static::unit($retVal);
-        }
-
-        return $retVal;
+        return static::unit($transform($this->value));
     }
 
     /**
