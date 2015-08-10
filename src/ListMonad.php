@@ -4,21 +4,11 @@ namespace Monad;
 
 use Traversable;
 
-class ListMonad extends Monad implements \Iterator
+class ListMonad extends Monad implements \IteratorAggregate
 {
     public static $unit = [__CLASS__, 'unit'];
 
-    /**
-     * @var \Closure
-     */
-    private $transformation;
-
-    /**
-     * @var \ArrayIterator
-     */
-    private $transformed;
-
-    protected function __construct($value, callable $transform = null)
+    protected function __construct($value)
     {
         if ($value instanceof \IteratorAggregate) {
             $value = $value->getIterator();
@@ -29,40 +19,7 @@ class ListMonad extends Monad implements \Iterator
             $value = new \ArrayIterator($value);
         }
 
-        if ($transform === null) {
-            $this->transformed = $value;
-        } else {
-            $this->transformation = $transform;
-            $this->transformed    = new \ArrayIterator();
-        }
-
         parent::__construct($value);
-    }
-
-    private function transform($current)
-    {
-        $transform = $this->transformation;
-        if ($current instanceof Monad) {
-            $return = $current->bind($transform);
-        } else {
-            $return = $transform($current);
-        }
-
-        return $return;
-    }
-
-    /**
-     * @param $transformed
-     */
-    private function append($transformed)
-    {
-        if (is_array($transformed)) {
-            foreach ($transformed as $value) {
-                $this->transformed->append($value);
-            }
-        } else {
-            $this->transformed->append($transformed);
-        }
     }
 
     /**
@@ -72,21 +29,20 @@ class ListMonad extends Monad implements \Iterator
      */
     public function bind(callable $transform)
     {
-        return new ListMonad($this, $transform);
+        return new ListMonad(new ArrayCallbackIterator($this->value, $transform));
     }
 
     public function extract()
     {
-        return array_map(
-            function ($value) {
-                if ($value instanceof Monad) {
-                    $value = $value->extract();
-                }
+        $extractIfMonad = function ($value) {
+            if ($value instanceof Monad) {
+                $value = $value->extract();
+            }
 
-                return $value;
-            },
-            iterator_to_array($this)
-        );
+            return $value;
+        };
+
+        return array_map($extractIfMonad, iterator_to_array($this));
     }
 
     public function __toString()
@@ -97,39 +53,15 @@ class ListMonad extends Monad implements \Iterator
         return "List({$elements})";
     }
 
-    public function rewind()
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Retrieve an external iterator
+     * @link http://php.net/manual/en/iteratoraggregate.getiterator.php
+     * @return Traversable An instance of an object implementing <b>Iterator</b> or
+     * <b>Traversable</b>
+     */
+    public function getIterator()
     {
-        $this->transformed->rewind();
-    }
-
-    public function current()
-    {
-        return $this->transformed->current();
-    }
-
-    public function key()
-    {
-        return $this->transformed->key();
-    }
-
-    public function next()
-    {
-        $this->transformed->next();
-        if (!$this->transformed->valid()) {
-            $this->value->next();
-        }
-    }
-
-    public function valid()
-    {
-        if (!$this->transformed->valid()) {
-            if ($this->value->valid()) {
-                $this->append(
-                    $this->transform($this->value->current())
-                );
-            }
-        }
-
-        return $this->transformed->valid();
+        return $this->value;
     }
 }
