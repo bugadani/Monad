@@ -15,6 +15,7 @@ class IdentityTest extends \PHPUnit_Framework_TestCase
             });
 
         $this->assertEquals(3, $result->extract());
+        $this->assertEquals('Identity(3)', (string)$result);
     }
 
     public function testIdentityChained()
@@ -28,5 +29,6 @@ class IdentityTest extends \PHPUnit_Framework_TestCase
                           });
 
         $this->assertEquals(3, $result->extract());
+        $this->assertEquals('Identity(3)', (string)$result);
     }
 }

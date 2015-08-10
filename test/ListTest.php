@@ -76,13 +76,13 @@ class ListTest extends \PHPUnit_Framework_TestCase
             return [$value, $value];
         };
 
-        $result = ListMonad::unit(['bunny'])
+        $result = ListMonad::unit('bunny')
                            ->bind($generation);
 
         $this->assertEquals(['bunny', 'bunny'], $result->extract());
         $this->assertEquals('List(bunny, bunny)', (string)$result);
 
-        $result = ListMonad::unit(['bunny'])
+        $result = ListMonad::unit('bunny')
                            ->bind($generation)
                            ->bind($generation);
 

@@ -5,6 +5,13 @@ namespace Monad;
 class PromiseTest extends \PHPUnit_Framework_TestCase
 {
 
+    public function testThatResolveIsUnit()
+    {
+        $promise = Promise::unit(1);
+        $this->assertEquals('Promise(1)', (string)$promise);
+        $this->assertEquals('fulfilled', $promise->getState());
+    }
+
     /**
      * This test
      */
