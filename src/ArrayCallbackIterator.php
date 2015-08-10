@@ -25,6 +25,8 @@ class ArrayCallbackIterator extends \ArrayIterator
     {
         $this->source         = $source;
         $this->transformation = $transform;
+
+        parent::__construct([]);
     }
 
     private function transform($current)
