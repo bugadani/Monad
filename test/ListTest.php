@@ -138,7 +138,7 @@ class ListTest extends \PHPUnit_Framework_TestCase
             ["title" => "baz"],
             ["title" => "biz", "author" => ["name" => "Mark", "email" => "mark@example.com"]],
         ];
-        $monad = new ListMonad($posts);
+        $monad = ListMonad::unit($posts);
 
         $names = $monad->bind(Maybe::$unit)
                        ->bind($index("author"))

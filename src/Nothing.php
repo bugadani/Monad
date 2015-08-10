@@ -4,14 +4,19 @@ namespace Monad;
 
 class Nothing extends Maybe
 {
-    public static $unit = [__CLASS__, 'unit'];
+    public static  $unit = [__CLASS__, 'unit'];
+    private static $instance;
 
     public static function unit($value = null)
     {
-        return new Nothing();
+        if (self::$instance === null) {
+            self::$instance = new Nothing();
+        }
+
+        return self::$instance;
     }
 
-    public function __construct()
+    protected function __construct()
     {
     }
 

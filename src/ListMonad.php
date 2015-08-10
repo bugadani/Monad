@@ -18,7 +18,7 @@ class ListMonad extends Monad implements \Iterator
      */
     private $transformed;
 
-    public function __construct($value, callable $transform = null)
+    protected function __construct($value, callable $transform = null)
     {
         if ($value instanceof \IteratorAggregate) {
             $value = $value->getIterator();

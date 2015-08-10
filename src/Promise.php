@@ -13,6 +13,11 @@ class Promise extends Monad
 {
     public static $unit = [__CLASS__, 'resolve'];
 
+    public static function unit($value)
+    {
+        return Promise::resolve($value);
+    }
+
     public static function resolve($value, Promise $promise = null)
     {
         if ($value === $promise) {
@@ -60,7 +65,7 @@ class Promise extends Monad
         if ($parent === null) {
             $this->tasks = new TaskQueue();
         } else {
-            $this->tasks  = $parent->tasks;
+            $this->tasks = $parent->tasks;
         }
         $this->state = new Pending($this, $this->tasks);
     }

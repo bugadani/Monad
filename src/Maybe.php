@@ -13,7 +13,7 @@ abstract class Maybe extends Monad
     public static function unit($value)
     {
         if ($value === null) {
-            return new Nothing();
+            return Nothing::unit();
         }
 
         return new Just($value);
